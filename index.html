@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f14" />
+  <title>Дыхание 4×4</title>
+
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --card:#121823;
+      --muted:#9aa7b6;
+      --text:#e9eef5;
+      --accent:#6ee7ff;
+      --good:#7CFFB2;
+      --warn:#FFD36E;
+      --bad:#FF6E8A;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+      --radius: 22px;
+    }
+
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 50% 20%, rgba(110,231,255,.10), transparent 60%),
+                  radial-gradient(900px 600px at 30% 70%, rgba(124,255,178,.08), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+    }
+
+    .wrap{
+      width: min(520px, 100%);
+      display:flex;
+      flex-direction:column;
+      gap: 14px;
+    }
+
+    .header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 12px;
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+    .title h1{
+      margin:0;
+      font-size: 20px;
+      letter-spacing: .2px;
+      font-weight: 750;
+    }
+    .title p{
+      margin:0;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .stageRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .stageName{
+      font-size: 18px;
+      font-weight: 720;
+      letter-spacing: .2px;
+    }
+
+    .badge{
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      background: rgba(255,255,255,.02);
+      white-space: nowrap;
+    }
+
+    .bigTimer{
+      display:flex;
+      align-items:baseline;
+      justify-content:center;
+      gap: 10px;
+      margin: 10px 0 6px;
+      user-select:none;
+    }
+    .bigTimer .num{
+      font-variant-numeric: tabular-nums;
+      font-size: 56px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .bigTimer .sec{
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .progressWrap{
+      margin-top: 8px;
+    }
+    .progressBar{
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.07);
+    }
+    .progressFill{
+      height:100%;
+      width:0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(110,231,255,.9), rgba(124,255,178,.9));
+      transition: width .08s linear;
+    }
+
+    .ringZone{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin: 14px 0 4px;
+    }
+    .ring{
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.05), rgba(255,255,255,.01) 55%, transparent 56%),
+        conic-gradient(from 0deg, rgba(110,231,255,.75), rgba(124,255,178,.75), rgba(110,231,255,.75));
+      position:relative;
+      filter: drop-shadow(0 18px 45px rgba(0,0,0,.5));
+      overflow:hidden;
+    }
+    .ring::before{
+      content:"";
+      position:absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: rgba(11,15,20,.80);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .pulse{
+      position:absolute;
+      inset: 0;
+      border-radius: 50%;
+      transform: scale(0.70);
+      opacity: 0.95;
+      transition: transform .25s ease, opacity .25s ease;
+    }
+    .pulse.running{
+      /* scale is controlled by JS each tick */
+      transition: transform .08s linear;
+    }
+
+    .controls{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    button{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.03);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-weight: 700;
+      cursor:pointer;
+      flex: 1 1 140px;
+      min-height: 46px;
+    }
+    button:active{ transform: translateY(1px); }
+    button.primary{
+      background: linear-gradient(180deg, rgba(110,231,255,.18), rgba(110,231,255,.06));
+      border-color: rgba(110,231,255,.35);
+    }
+    button.danger{
+      background: linear-gradient(180deg, rgba(255,110,138,.18), rgba(255,110,138,.06));
+      border-color: rgba(255,110,138,.35);
+    }
+
+    .toggles{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .toggle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.02);
+    }
+    .toggle .label{
+      display:flex;
+      flex-direction:column;
+      gap: 2px;
+    }
+    .toggle .label .top{
+      font-weight: 720;
+      font-size: 13px;
+    }
+    .toggle .label .sub{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .switch{
+      width: 44px;
+      height: 26px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      position:relative;
+      flex: 0 0 auto;
+    }
+    .knob{
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.85);
+      position:absolute;
+      top: 1px;
+      left: 1px;
+      transition: left .18s ease, background .18s ease;
+    }
+    .switch.on{
+      background: rgba(124,255,178,.16);
+      border-color: rgba(124,255,178,.35);
+    }
+    .switch.on .knob{
+      left: 21px;
+      background: rgba(124,255,178,.95);
+    }
+
+    .small{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+      margin-top: 10px;
+    }
+
+    .row2{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .stat{
+      flex: 1 1 160px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.02);
+    }
+    .stat .k{
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .stat .v{
+      font-variant-numeric: tabular-nums;
+      font-size: 18px;
+      font-weight: 760;
+    }
+
+    @media (max-height: 700px){
+      .ring{ width: 200px; height:200px; }
+      .bigTimer .num{ font-size: 48px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="title">
+        <h1>Дыхание 4–4–4–4</h1>
+        <p>Вдох 4с → задержка 4с → выдох 4с → задержка 4с. Нажми «Старт». Можно добавить на главный экран.</p>
+      </div>
+      <div class="badge" id="statusBadge">Остановлено</div>
+    </div>
+
+    <div class="card">
+      <div class="stageRow">
+        <div class="stageName" id="stageName">Готов</div>
+        <div class="badge" id="cycleBadge">Круг: 0</div>
+      </div>
+
+      <div class="ringZone">
+        <div class="ring" aria-hidden="true">
+          <div class="pulse" id="pulse"></div>
+        </div>
+      </div>
+
+      <div class="bigTimer" aria-live="polite">
+        <div class="num" id="secLeft">4</div>
+        <div class="sec">сек</div>
+      </div>
+
+      <div class="progressWrap">
+        <div class="progressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div class="progressFill" id="progressFill"></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="primary" id="btnStart">Старт</button>
+        <button id="btnPause">Пауза</button>
+        <button class="danger" id="btnReset">Сброс</button>
+      </div>
+
+      <div class="toggles">
+        <div class="toggle" id="tgVibe">
+          <div class="label">
+            <div class="top">Вибрация</div>
+            <div class="sub">Короткий сигнал на смене фазы</div>
+          </div>
+          <div class="switch" id="swVibe" role="switch" aria-checked="false"><div class="knob"></div></div>
+        </div>
+
+        <div class="toggle" id="tgSound">
+          <div class="label">
+            <div class="top">Звук</div>
+            <div class="sub">Тихий «тик» на смене фазы</div>
+          </div>
+          <div class="switch" id="swSound" role="switch" aria-checked="false"><div class="knob"></div></div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="stat">
+          <div class="k">Длительность круга</div>
+          <div class="v">16 сек</div>
+        </div>
+        <div class="stat">
+          <div class="k">Прошло времени</div>
+          <div class="v" id="elapsed">00:00</div>
+        </div>
+      </div>
+
+      <div class="small">
+        Подсказка: если вибрация/звук не срабатывают — нажми «Старт» ещё раз (браузеру нужно действие пользователя).
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ====== Настройки протокола 4-4-4-4 ======
+    const PHASES = [
+      { key: "inhale", label: "Вдох",   seconds: 4, color: "var(--accent)", scaleFrom: 0.70, scaleTo: 1.02 },
+      { key: "hold1",  label: "Задержка",seconds: 4, color: "var(--warn)",   scaleFrom: 1.02, scaleTo: 1.02 },
+      { key: "exhale", label: "Выдох",   seconds: 4, color: "var(--good)",   scaleFrom: 1.02, scaleTo: 0.70 },
+      { key: "hold2",  label: "Задержка",seconds: 4, color: "var(--warn)",   scaleFrom: 0.70, scaleTo: 0.70 }
+    ];
+
+    // ====== Элементы UI ======
+    const stageName   = document.getElementById("stageName");
+    const secLeftEl   = document.getElementById("secLeft");
+    const cycleBadge  = document.getElementById("cycleBadge");
+    const statusBadge = document.getElementById("statusBadge");
+    const progressFill= document.getElementById("progressFill");
+    const pulse       = document.getElementById("pulse");
+    const elapsedEl   = document.getElementById("elapsed");
+
+    const btnStart = document.getElementById("btnStart");
+    const btnPause = document.getElementById("btnPause");
+    const btnReset = document.getElementById("btnReset");
+
+    const tgVibe = document.getElementById("tgVibe");
+    const swVibe = document.getElementById("swVibe");
+    const tgSound= document.getElementById("tgSound");
+    const swSound= document.getElementById("swSound");
+
+    // ====== Состояние ======
+    let running = false;
+    let paused = false;
+
+    let phaseIndex = 0;
+    let phaseRemaining = PHASES[0].seconds;
+    let cycleCount = 0;
+
+    let tickTimer = null;
+    let rafTimer = null;
+
+    let phaseStartTs = null;     // ms
+    let elapsedStartTs = null;   // ms
+    let elapsedPausedAcc = 0;    // ms
+    let pausedAt = null;         // ms
+
+    let useVibe = false;
+    let useSound = false;
+
+    // ====== Звук (простая короткая "пипка") ======
+    let audioCtx = null;
+    function beep(){
+      if (!useSound) return;
+      try{
+        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = audioCtx;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.value = 880;
+        g.gain.value = 0.0001;
+
+        o.connect(g); g.connect(ctx.destination);
+        const now = ctx.currentTime;
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.06, now + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+
+        o.start(now);
+        o.stop(now + 0.09);
+      }catch(e){}
+    }
+
+    function vibrate(){
+      if (!useVibe) return;
+      if (navigator.vibrate) navigator.vibrate(30);
+    }
+
+    // ====== UI Helpers ======
+    function setSwitch(sw, on){
+      sw.classList.toggle("on", on);
+      sw.setAttribute("aria-checked", String(on));
+    }
+
+    function mmss(ms){
+      const total = Math.max(0, Math.floor(ms/1000));
+      const m = Math.floor(total/60);
+      const s = total % 60;
+      return String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+    }
+
+    function updateElapsed(){
+      if (!elapsedStartTs) { elapsedEl.textContent = "00:00"; return; }
+      let now = Date.now();
+      let acc = elapsedPausedAcc;
+      if (running && !paused) {
+        acc += (now - elapsedStartTs);
+      } else if (paused && pausedAt) {
+        acc += (pausedAt - elapsedStartTs);
+      }
+      elapsedEl.textContent = mmss(acc);
+    }
+
+    function setStatus(text){
+      statusBadge.textContent = text;
+    }
+
+    function currentPhase(){
+      return PHASES[phaseIndex];
+    }
+
+    function paintPhaseUI(init=false){
+      const ph = currentPhase();
+      stageName.textContent = ph.label;
+      cycleBadge.textContent = "Круг: " + cycleCount;
+      secLeftEl.textContent = String(phaseRemaining);
+      // ring tint
+      pulse.style.background = `radial-gradient(circle at 50% 50%, ${ph.color}33, ${ph.color}00 65%)`;
+      if (init){
+        progressFill.style.width = "0%";
+      }
+    }
+
+    function startPhase(){
+      const ph = currentPhase();
+      phaseRemaining = ph.seconds;
+      phaseStartTs = Date.now();
+      paintPhaseUI(true);
+
+      // signal at phase start (кроме самого первого старта, если хочешь — убери условие)
+      if (running) { vibrate(); beep(); }
+    }
+
+    function nextPhase(){
+      phaseIndex++;
+      if (phaseIndex >= PHASES.length){
+        phaseIndex = 0;
+        cycleCount++;
+      }
+      startPhase();
+    }
+
+    // ====== Тики секунд ======
+    function tick(){
+      if (!running || paused) return;
+
+      const now = Date.now();
+      const ph = currentPhase();
+      const elapsedInPhase = (now - phaseStartTs) / 1000; // seconds float
+      const remain = Math.ceil(ph.seconds - elapsedInPhase);
+
+      // прогресс 0..100
+      const progress = Math.min(1, Math.max(0, elapsedInPhase / ph.seconds));
+      progressFill.style.width = (progress * 100).toFixed(1) + "%";
+
+      // анимация "дыхания" (масштаб кольца)
+      const scale = ph.scaleFrom + (ph.scaleTo - ph.scaleFrom) * progress;
+      pulse.style.transform = `scale(${scale})`;
+      pulse.classList.add("running");
+
+      // обновление секунд (только если изменилось)
+      const newRemain = Math.max(0, remain);
+      if (newRemain !== phaseRemaining){
+        phaseRemaining = newRemain;
+        secLeftEl.textContent = String(phaseRemaining);
+      }
+
+      // конец фазы
+      if (elapsedInPhase >= ph.seconds){
+        nextPhase();
+      }
+
+      updateElapsed();
+      rafTimer = requestAnimationFrame(tick);
+    }
+
+    function start(){
+      if (running && !paused) return;
+
+      // первый старт
+      if (!running){
+        running = true;
+        paused = false;
+        phaseIndex = 0;
+        cycleCount = 0;
+        elapsedPausedAcc = 0;
+        elapsedStartTs = Date.now();
+        pausedAt = null;
+
+        setStatus("В процессе");
+        btnStart.textContent = "Идёт…";
+        btnStart.disabled = true;
+
+        startPhase();
+        // не сигналим на первый старт, чтобы не дёргать лишний раз
+      } else {
+        // продолжение после паузы
+        paused = false;
+        setStatus("В процессе");
+        btnStart.textContent = "Идёт…";
+        btnStart.disabled = true;
+
+        // сдвигаем phaseStartTs так, чтобы фаза продолжилась с того же места
+        // phaseRemaining хранит ceil, поэтому пересоберём по точному
+        const ph = currentPhase();
+        const elapsedInPhase = ph.seconds - phaseRemaining;
+        phaseStartTs = Date.now() - elapsedInPhase * 1000;
+
+        // для общего elapsed
+        if (pausedAt){
+          elapsedPausedAcc += (pausedAt - elapsedStartTs);
+          elapsedStartTs = Date.now();
+          pausedAt = null;
+        }
+        vibrate(); beep();
+      }
+
+      cancelAnimationFrame(rafTimer);
+      rafTimer = requestAnimationFrame(tick);
+    }
+
+    function pause(){
+      if (!running || paused) return;
+      paused = true;
+      pausedAt = Date.now();
+
+      setStatus("Пауза");
+      btnStart.textContent = "Продолжить";
+      btnStart.disabled = false;
+
+      cancelAnimationFrame(rafTimer);
+      updateElapsed();
+      vibrate(); beep();
+    }
+
+    function reset(){
+      running = false;
+      paused = false;
+
+      phaseIndex = 0;
+      phaseRemaining = PHASES[0].seconds;
+      cycleCount = 0;
+
+      phaseStartTs = null;
+      elapsedStartTs = null;
+      elapsedPausedAcc = 0;
+      pausedAt = null;
+
+      setStatus("Остановлено");
+      btnStart.textContent = "Старт";
+      btnStart.disabled = false;
+
+      stageName.textContent = "Готов";
+      cycleBadge.textContent = "Круг: 0";
+      secLeftEl.textContent = "4";
+      progressFill.style.width = "0%";
+      pulse.style.transform = "scale(0.70)";
+      pulse.classList.remove("running");
+      updateElapsed();
+      vibrate(); beep();
+    }
+
+    // ====== Тогглы ======
+    tgVibe.addEventListener("click", () => {
+      useVibe = !useVibe;
+      setSwitch(swVibe, useVibe);
+      vibrate();
+    });
+
+    tgSound.addEventListener("click", async () => {
+      useSound = !useSound;
+      setSwitch(swSound, useSound);
+      // попытка "разбудить" audio context по действию пользователя
+      if (useSound){
+        try{
+          if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") await audioCtx.resume();
+          beep();
+        }catch(e){}
+      }
+    });
+
+    // ====== Кнопки ======
+    btnStart.addEventListener("click", start);
+    btnPause.addEventListener("click", pause);
+    btnReset.addEventListener("click", reset);
+
+    // ====== Стартовое состояние ======
+    reset();
+  </script>
+</body>
+</html>
